@@ -36,3 +36,27 @@ if (file_exists($appConfigPath)) {
 
 $errorHandler = new App\Support\ErrorHandler(app_logger());
 $errorHandler->register();
+
+// Load extensions
+require_once app_path('Registry.php');
+
+$extensionsDir = app_path('Extensions');
+if (is_dir($extensionsDir)) {
+    $extensionDirs = array_diff(scandir($extensionsDir), ['.', '..']);
+
+    foreach ($extensionDirs as $dir) {
+        $extensionPath = $extensionsDir . '/' . $dir;
+        if (is_dir($extensionPath)) {
+            $manifestPath = $extensionPath . '/extension.json';
+            if (file_exists($manifestPath)) {
+                $manifest = json_decode(file_get_contents($manifestPath), true);
+                if (isset($manifest['active']) && $manifest['active']) {
+                    $registrationFile = $extensionPath . '/register.php';
+                    if (file_exists($registrationFile)) {
+                        require_once $registrationFile;
+                    }
+                }
+            }
+        }
+    }
+}
