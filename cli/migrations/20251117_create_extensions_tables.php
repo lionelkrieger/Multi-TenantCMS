@@ -56,11 +56,15 @@ try {
                 name VARCHAR(150) NOT NULL,
                 display_name VARCHAR(150) NOT NULL,
                 version VARCHAR(20) NOT NULL,
+                installed_version VARCHAR(20) NULL,
                 author VARCHAR(150) NULL,
                 description TEXT NULL,
                 homepage_url VARCHAR(255) NULL,
                 entry_point VARCHAR(255) NOT NULL,
                 manifest_path VARCHAR(255) NOT NULL,
+                manifest_checksum VARCHAR(64) NULL,
+                signature_status ENUM('unknown','trusted','untrusted') DEFAULT 'unknown',
+                signature_vendor VARCHAR(150) NULL,
                 status ENUM('installed','active','inactive','error') DEFAULT 'inactive',
                 allow_org_toggle BOOLEAN DEFAULT FALSE,
                 requires_core_version VARCHAR(20) NULL,
@@ -83,6 +87,18 @@ try {
         }
         if (!in_array('manifest_path', $columns, true)) {
             $connection->exec("ALTER TABLE extensions ADD COLUMN manifest_path VARCHAR(255) NOT NULL DEFAULT '' AFTER entry_point");
+        }
+        if (!in_array('manifest_checksum', $columns, true)) {
+            $connection->exec("ALTER TABLE extensions ADD COLUMN manifest_checksum VARCHAR(64) NULL AFTER manifest_path");
+        }
+        if (!in_array('signature_status', $columns, true)) {
+            $connection->exec("ALTER TABLE extensions ADD COLUMN signature_status ENUM('unknown','trusted','untrusted') DEFAULT 'unknown' AFTER manifest_checksum");
+        }
+        if (!in_array('signature_vendor', $columns, true)) {
+            $connection->exec("ALTER TABLE extensions ADD COLUMN signature_vendor VARCHAR(150) NULL AFTER signature_status");
+        }
+        if (!in_array('installed_version', $columns, true)) {
+            $connection->exec("ALTER TABLE extensions ADD COLUMN installed_version VARCHAR(20) NULL AFTER version");
         }
         if (!in_array('allow_org_toggle', $columns, true)) {
             $connection->exec("ALTER TABLE extensions ADD COLUMN allow_org_toggle BOOLEAN DEFAULT FALSE AFTER status");

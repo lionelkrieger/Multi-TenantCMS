@@ -1,0 +1,31 @@
+{
+  "slug": "platform/hotel-manager",
+  "name": "Hotel Manager",
+  "version": "1.0.0",
+  "description": "Complete hospitality management: Inventory, Reservations, Point of Sale.",
+  "entry_point": "bootstrap.php",
+  "requires_core_version": "2.0.0",
+  "hooks": [
+    "org_landing_page_render",
+    "property_detail_page_render",
+    "user_action_flow_start",
+    "checkout_process_start",
+    "order_confirmation_render"
+  ],
+  "permissions": [
+    "manage_hotel_inventory",
+    "manage_hotel_reservations",
+    "use_pos_system",
+    "view_hotel_reports"
+  ],
+  "publicRoutes": [
+    "/hotel/{property_id}/book",
+    "/hotel/{property_id}/availability"
+  ],
+  "adminRoutes": [
+    "/admin/hotel-manager",
+    "/admin/hotel-manager/inventory",
+    "/admin/hotel-manager/reservations",
+    "/admin/hotel-manager/pos"
+  ]
+}

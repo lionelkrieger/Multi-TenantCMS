@@ -39,11 +39,15 @@ $requirements = [
         'name',
         'display_name',
         'version',
+    'installed_version',
         'author',
         'description',
         'homepage_url',
         'entry_point',
         'manifest_path',
+    'manifest_checksum',
+    'signature_status',
+    'signature_vendor',
         'status',
         'allow_org_toggle',
         'requires_core_version',
@@ -51,6 +55,10 @@ $requirements = [
         'updated_at',
     ],
     'extension_settings' => ['id', 'extension_id', 'organization_id', 'key', 'value', 'created_at', 'updated_at'],
+    'extension_permissions' => ['id', 'extension_id', 'permission', 'created_at'],
+    'extension_hooks' => ['id', 'extension_id', 'hook_type', 'hook_name', 'metadata', 'created_at'],
+    'extension_routes' => ['id', 'extension_id', 'surface', 'method', 'path', 'capability', 'metadata', 'created_at'],
+    'extension_panels' => ['id', 'extension_id', 'panel_key', 'title', 'component', 'schema_path', 'permissions', 'visible_to', 'org_toggle', 'sort_order', 'metadata', 'created_at'],
 ];
 
 $missing = [];

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Extensions\Contracts\ExtensionRegistryInterface;
+use App\Extensions\Exceptions\ExtensionException;
 use App\Models\User;
 use App\Repositories\ExtensionRepository;
 use App\Repositories\OrganizationRepository;
@@ -16,7 +18,8 @@ final class OrganizationExtensionsController extends Controller
         private readonly OrganizationRepository $organizations,
         private readonly UserRepository $users,
         private readonly ExtensionRepository $extensions,
-        private readonly ExtensionSettingsService $settings
+        private readonly ExtensionSettingsService $settings,
+        private readonly ExtensionRegistryInterface $registry
     ) {
     }
 
@@ -128,7 +131,20 @@ final class OrganizationExtensionsController extends Controller
         }
 
         $enabled = isset($input['enabled']) && (string) $input['enabled'] === '1';
-        $this->settings->setEnabled($extension->slug, $organizationId, $enabled);
+
+        try {
+            if ($enabled) {
+                $this->registry->activate($extension->slug, $organizationId);
+            } else {
+                $this->registry->deactivate($extension->slug, $organizationId);
+            }
+        } catch (ExtensionException $exception) {
+            return [
+                'redirect' => null,
+                'type' => 'error',
+                'message' => $exception->getMessage(),
+            ];
+        }
 
         \audit_log('extensions.org.toggle', [
             'actor_id' => $actor->id,

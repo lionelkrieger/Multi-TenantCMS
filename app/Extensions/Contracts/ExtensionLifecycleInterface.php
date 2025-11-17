@@ -17,4 +17,6 @@ interface ExtensionLifecycleInterface
     public function activate(ExtensionContext $context): void;
 
     public function deactivate(ExtensionContext $context): void;
+
+    public function routes(ExtensionContext $context): void;
 }

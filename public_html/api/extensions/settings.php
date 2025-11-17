@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/../../../app/includes/bootstrap.php';
 
+use App\Extensions\Exceptions\ExtensionException;
+use App\Extensions\ExtensionRegistry;
+use App\Extensions\ManifestValidator;
 use App\Models\User;
 use App\Repositories\ExtensionRepository;
 use App\Repositories\OrganizationRepository;
@@ -23,6 +26,7 @@ $users = new UserRepository($connection);
 $organizations = new OrganizationRepository($connection);
 $extensions = new ExtensionRepository($connection);
 $settings = new ExtensionSettingsService($connection);
+$registry = new ExtensionRegistry(new ManifestValidator(), $settings, $connection);
 
 $user = $users->findById(Auth::id() ?? '');
 if ($user === null) {
@@ -99,7 +103,17 @@ switch ($method) {
                 return;
             }
 
-            $settings->setEnabled($extensionSlug, $organizationId, $enableValue);
+            try {
+                if ($enableValue) {
+                    $registry->activate($extensionSlug, $organizationId);
+                } else {
+                    $registry->deactivate($extensionSlug, $organizationId);
+                }
+            } catch (ExtensionException $exception) {
+                http_response_code(422);
+                echo json_encode(['error' => $exception->getMessage()]);
+                return;
+            }
             $changes['enabled'] = true;
 
             \audit_log('extensions.org.toggle', [

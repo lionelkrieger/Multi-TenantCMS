@@ -124,11 +124,15 @@ final class SqlSchema
                 name VARCHAR(150) NOT NULL,
                 display_name VARCHAR(150) NOT NULL,
                 version VARCHAR(20) NOT NULL,
+                installed_version VARCHAR(20) NULL,
                 author VARCHAR(150) NULL,
                 description TEXT,
                 homepage_url VARCHAR(255) NULL,
                 entry_point VARCHAR(255) NOT NULL,
                 manifest_path VARCHAR(255) NOT NULL,
+                manifest_checksum VARCHAR(64) NULL,
+                signature_status ENUM('unknown','trusted','untrusted') DEFAULT 'unknown',
+                signature_vendor VARCHAR(150) NULL,
                 status ENUM('installed','active','inactive','error') DEFAULT 'inactive',
                 allow_org_toggle BOOLEAN DEFAULT FALSE,
                 requires_core_version VARCHAR(20) NULL,
@@ -149,6 +153,60 @@ final class SqlSchema
                 FOREIGN KEY (extension_id) REFERENCES extensions(id) ON DELETE CASCADE,
                 FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
                 UNIQUE KEY unique_org_extension_key (extension_id, organization_id, `key`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            SQL,
+            <<<SQL
+            CREATE TABLE IF NOT EXISTS extension_permissions (
+                id VARCHAR(36) PRIMARY KEY NOT NULL,
+                extension_id VARCHAR(36) NOT NULL,
+                permission VARCHAR(150) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (extension_id) REFERENCES extensions(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_extension_permission (extension_id, permission)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            SQL,
+            <<<SQL
+            CREATE TABLE IF NOT EXISTS extension_hooks (
+                id VARCHAR(36) PRIMARY KEY NOT NULL,
+                extension_id VARCHAR(36) NOT NULL,
+                hook_type ENUM('event','command') NOT NULL,
+                hook_name VARCHAR(150) NOT NULL,
+                metadata JSON NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (extension_id) REFERENCES extensions(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_extension_hook (extension_id, hook_type, hook_name)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            SQL,
+            <<<SQL
+            CREATE TABLE IF NOT EXISTS extension_routes (
+                id VARCHAR(36) PRIMARY KEY NOT NULL,
+                extension_id VARCHAR(36) NOT NULL,
+                surface ENUM('admin','public','api','webhook') NOT NULL,
+                method VARCHAR(10) NOT NULL,
+                path VARCHAR(255) NOT NULL,
+                capability VARCHAR(150) NULL,
+                metadata JSON NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (extension_id) REFERENCES extensions(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_extension_route (extension_id, surface, method, path)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            SQL,
+            <<<SQL
+            CREATE TABLE IF NOT EXISTS extension_panels (
+                id VARCHAR(36) PRIMARY KEY NOT NULL,
+                extension_id VARCHAR(36) NOT NULL,
+                panel_key VARCHAR(150) NOT NULL,
+                title VARCHAR(150) NOT NULL,
+                component VARCHAR(50) NOT NULL,
+                schema_path VARCHAR(255) NULL,
+                permissions JSON NULL,
+                visible_to JSON NULL,
+                org_toggle BOOLEAN DEFAULT FALSE,
+                sort_order INT DEFAULT 0,
+                metadata JSON NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (extension_id) REFERENCES extensions(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_extension_panel (extension_id, panel_key)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             SQL,
             <<<SQL

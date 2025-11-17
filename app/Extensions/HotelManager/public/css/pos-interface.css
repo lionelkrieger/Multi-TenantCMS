@@ -1,0 +1,316 @@
+/* pos-interface.css - Styles for the Point of Sale interface */
+
+.pos-interface {
+    max-width: 1200px; /* Or whatever fits your layout best */
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #fff;
+    min-height: 100vh; /* Ensure it fills the viewport height if needed */
+}
+
+.pos-header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.pos-header h1 {
+    margin: 0;
+    font-size: 1.8em;
+    color: #333;
+}
+
+/* Guest/Reservation Selection */
+.guest-selection {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.guest-selection h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1em;
+}
+
+.room-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Adjust minmax as needed */
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.room-card {
+    background-color: #e7f3ff; /* Light blue for occupied */
+    border: 1px solid #b3d9ff;
+    border-radius: 4px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.room-card:hover {
+    background-color: #cce6ff;
+}
+
+.room-card.occupied {
+    background-color: #e7f3ff;
+    border-color: #b3d9ff;
+}
+
+.room-card.vacant {
+    background-color: #e6ffe6; /* Light green for vacant */
+    border-color: #b3ffb3;
+}
+
+.room-card.cleaning {
+    background-color: #fff0e6; /* Light orange for cleaning */
+    border-color: #ffd9b3;
+}
+
+.room-card.blocked {
+    background-color: #ffe6e6; /* Light red for blocked */
+    border-color: #ffb3b3;
+}
+
+.room-card .room-number {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.room-card .guest-name {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Category Tabs */
+.category-tabs {
+    display: flex;
+    overflow-x: auto; /* Allow horizontal scrolling on small screens */
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+    /* Optional: Add scrollbar styling if needed */
+    /* -ms-overflow-style: none;  IE and Edge */
+    /* scrollbar-width: none;  Firefox */
+}
+
+.category-tabs::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Chrome, Safari, Opera */
+}
+
+.category-tab {
+    flex-shrink: 0; /* Prevent tabs from shrinking */
+    padding: 10px 20px;
+    margin-right: 5px;
+    background-color: #f1f1f1;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+    min-width: 100px; /* Ensure tabs have minimum width */
+}
+
+.category-tab.active {
+    background-color: white;
+    border-bottom: 1px solid white; /* Cover the border-bottom of .category-tabs */
+    margin-bottom: -1px; /* Pull it slightly up to cover */
+    color: #007cba; /* Highlight active tab */
+}
+
+.category-tab:hover:not(.active) {
+    background-color: #e0e0e0;
+}
+
+/* Item Grid */
+.item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Adjust minmax for item size */
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.item-card {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.item-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.item-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.item-price {
+    color: #007cba;
+    font-weight: bold;
+}
+
+/* Quantity Selection */
+.quantity-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+.quantity-label {
+    margin: 0 15px;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.quantity-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5em;
+    padding: 0;
+    border: 1px solid #ccc;
+    background-color: white;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.quantity-btn:hover {
+    background-color: #e0e0e0;
+}
+
+.quantity-input {
+    width: 60px;
+    height: 40px;
+    text-align: center;
+    font-size: 1.2em;
+    padding: 0 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin: 0 10px;
+    box-sizing: border-box;
+}
+
+/* Charge Summary */
+.charge-summary {
+    background-color: #f0f8ff; /* Light blue background */
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 20px;
+    border: 1px solid #cce5ff;
+}
+
+.charge-summary h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.charge-summary p {
+    margin: 5px 0;
+}
+
+.total-amount {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: #d9534f; /* Danger/red color for total */
+}
+
+/* Action Buttons */
+.pos-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.pos-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1em;
+}
+
+.pos-btn-confirm {
+    background-color: #5cb85c; /* Green */
+    color: white;
+}
+
+.pos-btn-confirm:hover {
+    background-color: #4cae4c;
+}
+
+.pos-btn-cancel {
+    background-color: #d9534f; /* Red */
+    color: white;
+}
+
+.pos-btn-cancel:hover {
+    background-color: #c9302c;
+}
+
+/* Responsive Design for POS */
+@media (max-width: 768px) {
+    .pos-interface {
+        padding: 10px;
+    }
+
+    .item-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Smaller items on mobile */
+    }
+
+    .quantity-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 1.2em;
+    }
+
+    .quantity-input {
+        width: 50px;
+        height: 35px;
+        font-size: 1em;
+    }
+
+    .pos-actions {
+        flex-direction: column;
+    }
+
+    .pos-btn {
+        width: 100%;
+    }
+}

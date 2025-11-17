@@ -1,7 +1,13 @@
 {
   "slug": "platform/email",
-  "name": "Email & Documents",
+  "name": "email-docs",
+  "display_name": "Email & Documentation Suite",
   "version": "1.0.0",
   "description": "Handles email queuing, delivery, and PDF generation.",
-  "entry_point": "bootstrap.php"
+  "author": "Platform Core Team",
+  "homepage_url": "https://example.com/email-docs",
+  "entry_point": "bootstrap.php",
+  "permissions": [
+    "email.manage"
+  ]
 }

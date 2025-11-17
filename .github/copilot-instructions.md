@@ -66,6 +66,20 @@ The protocol must support the specific integration needs identified in our exten
 ## Output Format
 Generate a comprehensive markdown specification that serves as the single source of truth for all future extension development. Include concrete examples, required database schema changes, file structure templates, and validation rules.
 
+## Phase Roadmap (Authoritative 2025-11-17)
+
+All extension work must follow the roadmap defined in `docs/extension-protocol-gap-analysis-2025-11-17.md`. The phases are:
+
+0. **Baseline Assessment** – maintain the gap analysis and keep it current.
+1. **Manifest & Registry Hardening** – persist full manifest metadata, capability validation, and CLI doctor tooling.
+2. **Routing Orchestrator & Security Envelope** – mount admin/public/API/webhook surfaces with tenancy/auth enforcement.
+3. **Event Bus, Commands, & Telemetry** – ship canonical event envelopes, persistence, retries, and health dashboards.
+4. **Admin Experiences & Config Panels** – deliver master/org UIs powered by manifest-defined schemas and settings APIs.
+5. **Developer Tooling & Distribution** – release the SDK, scaffolder CLI, and submission workflow/docs.
+6. **Flagship Extension Implementations** – build Hotel Inventory, Reservation, POS, PayFast, Email/Docs, GTM per §9.
+
+Do not advance to a subsequent phase until the current one has verified schema/code/tests/docs artifacts.
+
 ## Scope Guardrails (Read Before Every Task)
 
 - **Stay extension-focused.** Any new work must directly advance the Core Extension Protocol (manifest validation, lifecycle hooks, routing orchestrator, event bus, configuration vault, etc.). Do not revisit unrelated core features unless the user explicitly says so.
@@ -78,7 +92,7 @@ Generate a comprehensive markdown specification that serves as the single source
 
 To guarantee we never drift away from the Core Extension Protocol:
 
-1. **Phase tracker required.** Mirror the Phase 0–6 checklist from `docs/core-extension-protocol-spec.md` in the active todo list. Explicitly mark which phase is in progress and do not start another until the current phase’s acceptance criteria (schema, code, tests, docs, verification) are complete.
+1. **Phase tracker required.** Mirror the Phase 0–6 checklist from `docs/extension-protocol-gap-analysis-2025-11-17.md` (derived from the core spec) in the active todo list. Explicitly mark which phase is in progress and do not start another until the current phase’s acceptance criteria (schema, code, tests, docs, verification) are complete.
 2. **Spec-first planning.** Before writing code, cite the exact section(s) from the protocol spec that authorize the work (e.g., §3.2 schema, §5 lifecycle). Summaries and PR notes must point back to those sections.
 3. **Scope gate on edits.** Any change to existing core files must include a short justification referencing the extension phase/requirement it serves. If a requested change seems outside that scope, pause and confirm with the user instead of proceeding.
 4. **Verification artifacts.** Each finished phase must produce a brief verification document/checklist (like `docs/phase4-verification.md`) plus any supporting tests or CLI commands proving the phase is done.
