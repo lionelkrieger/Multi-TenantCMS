@@ -1,0 +1,37 @@
+# Dependencies
+vendor/
+node_modules/
+
+# Environment specific files
+.env
+.env.local
+.env.*.local
+config/database.php
+app/config/database.php
+
+# Uploads and temporary files
+app/uploads/
+public_html/uploads/
+temp/
+tmp/
+
+# Logs
+logs/
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Sensitive files
+*.key
+*.pem
+*.crt
+*.cert
