@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Extensions\Email\Queue;
+namespace App\Extensions\Email;
 
 use App\Support\Database;
 use PDO;

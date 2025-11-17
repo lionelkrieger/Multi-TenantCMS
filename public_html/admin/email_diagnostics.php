@@ -2,12 +2,19 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../../app/includes/bootstrap.php';
+require_once __DIR__ . '/../../app/includes/bootstrap.php';
 
 use App\Support\Database;
 
 // In a real application, the organization ID would come from the session.
-$organizationId = 'org-123'; // Hardcoded for now
+// For now, we'll get it from the query string.
+$organizationId = $_GET['org_id'] ?? null;
+
+if (!$organizationId) {
+    http_response_code(400);
+    echo "<h1>Error: Missing Organization ID</h1>";
+    exit;
+}
 
 $pdo = Database::connection();
 
