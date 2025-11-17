@@ -1,33 +1,67 @@
-# Project Context
-- **Stack:** PHP 8.1+, MySQL 8.0+, Nginx, Vanilla JS/jQuery.
-- **Architecture:** Custom MVC (No frameworks like Laravel/Symfony). Multi-tenant SaaS.
-- **Root Structure:** `/var/www/property-management/` (Application root).
-- **Web Root:** `/public_html/` (Only entry points and assets).
-- **Core Logic:** `/app/` (Controllers, Models, Config - OUTSIDE web root).
+# Core Extension Protocol Specification
 
-# Security & Multi-Tenancy (CRITICAL)
-- **Database Access:** ALWAYS use PDO prepared statements. NEVER inject variables directly into SQL.
-- **Multi-Tenancy:** EVERY database query involving data must filter by `organization_id`. Data isolation is paramount.
-- **CSRF:** All POST requests must include and validate a CSRF token using `CSRF::validate()`.
-- **Output Escaping:** Sanitize ALL user output using `htmlspecialchars()`.
-- **File Uploads:** Validate MIME types (not just extensions). Store files in `/app/uploads/` (outside web root). Serve via `serve-logo.php` proxy.
-- **Permissions:** Config files (`config/`) must be generated with 600 permissions.
+## Context
+We have a working multi-tenant SaaS core system with users, organizations, properties, and master admin capabilities. We have also designed comprehensive specifications for multiple extensions:
 
-# Extension Architecture Rules
-- **Core Philosophy:** Core is "dumb". Business logic (car rentals, hotels, etc.) belongs in `app/extensions/`.
-- **Hooks:** Use `HookSystem::executeHook('hook_name', $data)` for UI/Logic injection. Do not modify core Controller/View files for extension features.
-- **Data Storage:** Extension data goes into extension-specific tables (e.g., `car_rental_vehicles`) or `extension_settings`.
-- **Flexibility:** Use JSON columns (`extension_data`, `pricing_data`) for variable schema attributes in extensions.
-- **Interface:** All extensions must implement `ExtensionInterface`.
+- Hotel Inventory System (room types, amenities, availability)
+- Point of Sale (folio charges, categories, items)  
+- PayFast Payment Gateway (online payments, IPN handling)
+- Email & Documentation System (transactional emails, PDF generation)
+- Google Tag Manager (analytics, enhanced conversions)
 
-# Code Style & Patterns
-- **PHP:** Strict typing (`declare(strict_types=1);`). PSR-12 coding standards.
-- **User Flows:** Do NOT use Sessions for multi-step flows (Checkout, etc.). Use the `user_flows` table with token persistence.
-- **Error Handling:** Use `try/catch` blocks for all DB operations and external API calls. Log errors to `/app/logs/application.log`.
-- **Routing:** Custom routing via `includes/domain_routing.php`. Handle Subdomain -> Organization mapping explicitly.
-- **Frontend:** Keep JS modular. Use AJAX with CSRF headers for dynamic interactions.
+However, these extensions don't exist yet, and we need to define the **standardized protocol** that ensures they will integrate seamlessly with the core system and with each other.
 
-# Database Guidelines
-- **IDs:** Use UUIDs (VARCHAR 36) for all Primary Keys.
-- **Foreign Keys:** Always define foreign keys with `ON DELETE CASCADE` or `SET NULL` as appropriate.
-- **Indexing:** Index all `organization_id` columns and Foreign Keys.
+## Purpose
+This document defines the mandatory interface between the core application and all future extensions. It ensures:
+- Consistent installation and activation across all extensions
+- Secure, multi-tenant data isolation 
+- Reliable communication between extensions
+- Predictable lifecycle management
+- Unified data layer for analytics and conversions
+- Clear upgrade and versioning paths
+
+## Key Requirements
+
+### 1. Core System Changes Required
+The core system must be refactored to support:
+- Extension registration and discovery via `/app/extensions/` directory scanning
+- Extension metadata storage in `extensions` and `extension_settings` tables
+- Standardized extension lifecycle methods (install, uninstall, activate, deactivate)
+- Event-driven hook system for cross-extension communication
+- Organization-scoped extension activation (per-org enable/disable)
+- Unified data layer for enhanced conversions and analytics
+
+### 2. Extension Development Standards
+Every extension MUST adhere to:
+- Required file structure (`extension.json`, `install.php`, etc.)
+- Manifest format with hooks, routes, permissions
+- Security practices (no raw script input, prepared statements, output escaping)
+- Multi-tenancy requirements (all data scoped to `organization_id`)
+- Public vs admin context separation
+- Version compatibility declaration
+
+### 3. Communication Protocol
+Extensions communicate through:
+- Core-provided Hook System (event-driven, not direct calls)
+- Standardized data contracts for cross-extension data
+- Organization context preservation in all operations
+- API endpoints for safe data access (not direct database queries)
+
+### 4. Security & Compliance
+All extensions must:
+- Respect organization boundaries (no cross-org data access)
+- Store sensitive data encrypted
+- Follow least-privilege principles
+- Validate all inputs and escape all outputs
+- Support secure file handling outside web root
+
+### 5. Integration Points
+The protocol must support the specific integration needs identified in our extension specs:
+- CRM data sharing for guest identification across all extensions
+- Reservation → POS folio creation and linking
+- PayFast payment status updates to reservation records
+- Email system access to reservation and folio data for confirmations
+- GTM data layer population with guest, reservation, and transaction data
+
+## Output Format
+Generate a comprehensive markdown specification that serves as the single source of truth for all future extension development. Include concrete examples, required database schema changes, file structure templates, and validation rules.

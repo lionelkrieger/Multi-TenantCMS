@@ -1,0 +1,20 @@
+{
+  "slug": "platform/payfast",
+  "name": "payfast",
+  "display_name": "PayFast Payment Gateway",
+  "version": "0.1.0",
+  "description": "Native PayFast integration for capturing online reservation payments and syncing status events.",
+  "author": "Platform Core Team",
+  "homepage_url": "https://developers.payfast.io/",
+  "entry_point": "bootstrap.php",
+  "requires_core_version": ">=0.1.0",
+  "permissions": ["payments:manage", "reservations:write"],
+  "hooks": {
+    "events": ["reservation.created", "reservation.payment.updated"],
+    "commands": ["payfast.capture"],
+    "routes": {
+      "api": ["POST /webhook", "POST /capture"],
+      "admin": ["GET /settings", "POST /settings"]
+    }
+  }
+}

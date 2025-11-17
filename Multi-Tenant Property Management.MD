@@ -812,6 +812,7 @@ Property Detail: /org/{org_id}/property/{prop_id} OR https://{custom_domain}/pro
 User Actions: /org/{org_id}/property/{prop_id}/actions?flow_token={token} OR https://{custom_domain}/property/{prop_id}/actions?flow_token={token}
 Checkout: /org/{org_id}/property/{prop_id}/checkout?flow_token={token} OR https://{custom_domain}/property/{prop_id}/checkout?flow_token={token}
 Confirmation: /org/order/{order_id}/confirmation?flow_token={token} OR https://{custom_domain}/order/{order_id}/confirmation?flow_token={token}
+👉 Core currently ships only lightweight stubs for the actions/checkout/confirmation endpoints so extensions can take full ownership of the journey without modifying core files.
 Domain Mapping System
 HTTP_HOST routing for automatic domain detection
 Database lookup for organization by custom domain

@@ -1,0 +1,18 @@
+{
+  "slug": "platform/gtm",
+  "name": "gtm",
+  "display_name": "Google Tag Manager Integration",
+  "version": "0.1.0",
+  "description": "Publishes GTM data layer events for reservation funnel and enhanced conversions.",
+  "author": "Platform Core Team",
+  "homepage_url": "https://marketingplatform.google.com/about/tag-manager/",
+  "entry_point": "bootstrap.php",
+  "requires_core_version": ">=0.1.0",
+  "permissions": ["analytics:read"],
+  "hooks": {
+    "events": ["guest.updated", "reservation.created", "reservation.payment.updated"],
+    "routes": {
+      "admin": ["GET /settings", "POST /settings"]
+    }
+  }
+}

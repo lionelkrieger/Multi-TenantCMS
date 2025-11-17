@@ -1,0 +1,20 @@
+{
+    "name": "lionelkrieger/multi-tenant-cms",
+    "description": "Core application for a secure multi-tenant property management SaaS.",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "config": {
+        "platform": {
+            "php": "8.1"
+        },
+        "sort-packages": true
+    }
+}

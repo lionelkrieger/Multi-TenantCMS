@@ -1,0 +1,64 @@
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../app/includes/bootstrap.php';
+
+$connection = Database::connection();
+
+$requirements = [
+    'users' => ['id', 'email', 'password_hash', 'name', 'organization_id', 'user_type', 'status', 'created_at'],
+    'organizations' => [
+        'id',
+        'name',
+        'created_by',
+        'logo_url',
+        'primary_color',
+        'secondary_color',
+        'accent_color',
+        'font_family',
+        'show_branding',
+        'custom_css',
+        'custom_domain',
+        'domain_verified',
+        'domain_verification_token',
+        'domain_verified_at',
+        'ssl_certificate_status',
+        'ssl_certificate_expires',
+        'created_at',
+        'updated_at',
+    ],
+    'properties' => ['id', 'name', 'description', 'address', 'organization_id', 'created_at'],
+    'user_property_access' => ['id', 'user_id', 'property_id', 'assigned_at'],
+    'user_invites' => ['id', 'email', 'organization_id', 'inviter_user_id', 'invite_type', 'token', 'status', 'created_at', 'expires_at'],
+    'user_flows' => ['id', 'token', 'org_id', 'property_id', 'user_id', 'current_step', 'completed_steps', 'expires_at', 'created_at'],
+    'extensions' => ['id', 'name', 'display_name', 'version', 'author', 'description', 'status', 'requires_core_version', 'created_at', 'updated_at'],
+    'extension_settings' => ['id', 'extension_id', 'organization_id', 'settings', 'enabled', 'created_at', 'updated_at'],
+];
+
+$missing = [];
+
+foreach ($requirements as $table => $columns) {
+    $stmt = $connection->query(sprintf('SHOW COLUMNS FROM `%s`', $table));
+    if ($stmt === false) {
+        $missing[$table] = $columns;
+        continue;
+    }
+
+    $existing = array_map(static fn (array $row) => $row['Field'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
+    $diff = array_values(array_diff($columns, $existing));
+
+    if ($diff !== []) {
+        $missing[$table] = $diff;
+    }
+}
+
+if ($missing !== []) {
+    echo "Schema check failed:\n";
+    foreach ($missing as $table => $cols) {
+        echo sprintf('- %s missing columns: %s%s', $table, implode(', ', $cols), PHP_EOL);
+    }
+    exit(1);
+}
+
+echo "Schema check passed." . PHP_EOL;
