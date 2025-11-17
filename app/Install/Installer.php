@@ -19,6 +19,8 @@ final class Installer
 
     public function install(InstallerConfig $config): InstallerResult
     {
+        $this->logInstallAttempt($config);
+
         if ($this->isAlreadyInstalled()) {
             throw new InstallerException('Application is already installed.');
         }
@@ -28,7 +30,9 @@ final class Installer
             $this->createDatabase($systemPdo, $config->appDbName);
             $this->createApplicationUser($systemPdo, $config);
         } catch (PDOException $exception) {
-            throw new InstallerException('Failed to prepare database objects: ' . $exception->getMessage(), 0, $exception);
+            $wrapped = new InstallerException('Failed to prepare database objects: ' . $exception->getMessage(), 0, $exception);
+            $this->logInstallFailure($wrapped);
+            throw $wrapped;
         }
 
         try {
@@ -36,11 +40,20 @@ final class Installer
             $this->applySchema($appPdo);
             $this->createMasterAdmin($appPdo, $config);
         } catch (Throwable $exception) {
-            throw new InstallerException('Failed to initialize application schema: ' . $exception->getMessage(), 0, $exception);
+            $wrapped = new InstallerException('Failed to initialize application schema: ' . $exception->getMessage(), 0, $exception);
+            $this->logInstallFailure($wrapped);
+            throw $wrapped;
         }
 
-        $this->writeDatabaseConfig($config);
-    \logger('Installation completed successfully.');
+        try {
+            $this->writeDatabaseConfig($config);
+        } catch (InstallerException $exception) {
+            $this->logInstallFailure($exception);
+            throw $exception;
+        }
+
+        \logger('Installation completed successfully.');
+        $this->logInstallSuccess($config);
 
         return new InstallerResult(
             $config->appPasswordWasGenerated(),
@@ -124,17 +137,75 @@ final class Installer
         $configArray = $config->toDatabaseConfig();
         $contents = "<?php\n\ndeclare(strict_types=1);\n\nreturn " . var_export($configArray, true) . ';\n';
         $path = $this->configFilePath();
-        file_put_contents($path, $contents);
-        @chmod($path, 0600);
+        $directory = dirname($path);
+        if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
+            throw new InstallerException(sprintf('Unable to create config directory at %s.', $directory));
+        }
+
+        if (file_exists($path) && !is_writable($path)) {
+            throw new InstallerException(sprintf('Existing config file at %s is not writable.', $path));
+        }
+
+        $bytes = @file_put_contents($path, $contents, LOCK_EX);
+        if ($bytes === false) {
+            throw new InstallerException(sprintf('Unable to write database config file at %s.', $path));
+        }
+
+        $this->applyConfigPermissions($path);
+        \app_logger()->info('Database configuration file written.', ['path' => $path]);
     }
 
     private function configFilePath(): string
     {
-    return \config_path(self::CONFIG_FILENAME);
+        return \config_path(self::CONFIG_FILENAME);
     }
 
     private function determineUserHost(string $dbHost): string
     {
         return $dbHost === 'localhost' ? 'localhost' : '%';
+    }
+
+    private function applyConfigPermissions(string $path): void
+    {
+        $chmodSucceeded = @chmod($path, 0600);
+        if ($chmodSucceeded === false) {
+            \app_logger()->warning('Unable to set database config permissions to 0600.', ['file' => $path]);
+            return;
+        }
+
+        clearstatcache(true, $path);
+        $perms = @substr(sprintf('%o', fileperms($path)), -3);
+        if ($perms !== false && $perms !== '600') {
+            \app_logger()->warning('Database config permissions are not 0600.', [
+                'file' => $path,
+                'permissions' => $perms,
+            ]);
+        }
+    }
+
+    private function logInstallAttempt(InstallerConfig $config): void
+    {
+        \app_logger()->info('Installer run started.', [
+            'db_host' => $config->dbHost,
+            'database' => $config->appDbName,
+            'app_db_username' => $config->appDbUsername,
+            'master_admin_email' => $config->masterAdminEmail,
+        ]);
+    }
+
+    private function logInstallSuccess(InstallerConfig $config): void
+    {
+        \app_logger()->info('Installer run completed successfully.', [
+            'database' => $config->appDbName,
+            'app_db_username' => $config->appDbUsername,
+            'master_admin_email' => $config->masterAdminEmail,
+        ]);
+    }
+
+    private function logInstallFailure(InstallerException $exception): void
+    {
+        \app_logger()->error('Installer run failed.', [
+            'error' => $exception->getMessage(),
+        ]);
     }
 }

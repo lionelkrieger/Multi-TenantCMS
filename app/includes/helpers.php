@@ -9,7 +9,7 @@ function app_config(): array
     if ($config === null) {
         $configPath = config_path('app.php');
         if (!file_exists($configPath)) {
-            throw new RuntimeException('Application config not found.');
+            throw new RuntimeException('Application config not found. Run the installer at /install.php to generate app/config/app.php and app/config/database.php.');
         }
         $config = require $configPath;
     }
@@ -69,6 +69,22 @@ function app_logger(): \App\Support\Logger
     }
 
     return $logger;
+}
+
+function audit_logger(): \App\Support\AuditLogger
+{
+    static $instance = null;
+
+    if ($instance === null) {
+        $instance = new \App\Support\AuditLogger();
+    }
+
+    return $instance;
+}
+
+function audit_log(string $event, array $context = []): void
+{
+    audit_logger()->log($event, $context);
 }
 
 function sanitize(string $value): string

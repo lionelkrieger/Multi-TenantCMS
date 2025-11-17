@@ -104,6 +104,13 @@ final class ExtensionController extends AdminController
         $allow = isset($input['allow_org_toggle']) && (string) $input['allow_org_toggle'] === '1';
         $this->extensions->updateAllowOrgToggle($extension->id, $allow);
 
+        \audit_log('extensions.allow_org_toggle.updated', [
+            'actor_id' => \Auth::id(),
+            'extension_id' => $extension->id,
+            'extension_slug' => $extension->slug,
+            'allow_org_toggle' => $allow,
+        ]);
+
         return [
             'redirect' => '/admin/extensions.php?saved=1',
             'type' => 'success',

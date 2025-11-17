@@ -6,20 +6,20 @@ require __DIR__ . '/../../app/includes/bootstrap.php';
 use App\Controllers\OrganizationController;
 use App\Repositories\OrganizationRepository;
 use App\Repositories\PropertyRepository;
+use App\Repositories\UserInviteRepository;
 use App\Repositories\UserRepository;
 use App\Services\OrganizationService;
 use App\Services\PropertyService;
 
 $connection = Database::connection();
-$service = new OrganizationService(
-	new OrganizationRepository($connection),
-	new UserRepository($connection)
-);
-$propertyService = new PropertyService(
-	new PropertyRepository($connection),
-	new OrganizationRepository($connection)
-);
-$controller = new OrganizationController($service, $propertyService);
+$organizationRepository = new OrganizationRepository($connection);
+$userRepository = new UserRepository($connection);
+$propertyRepository = new PropertyRepository($connection);
+$inviteRepository = new UserInviteRepository($connection);
+
+$organizationService = new OrganizationService($organizationRepository, $userRepository);
+$propertyService = new PropertyService($propertyRepository, $organizationRepository);
+$controller = new OrganizationController($organizationService, $propertyService, $userRepository, $inviteRepository);
 
 $requestedOrgId = $_GET['id'] ?? null;
 $domainOrg = resolve_organization_from_request();

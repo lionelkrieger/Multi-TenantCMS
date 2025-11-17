@@ -65,3 +65,21 @@ The protocol must support the specific integration needs identified in our exten
 
 ## Output Format
 Generate a comprehensive markdown specification that serves as the single source of truth for all future extension development. Include concrete examples, required database schema changes, file structure templates, and validation rules.
+
+## Scope Guardrails (Read Before Every Task)
+
+- **Stay extension-focused.** Any new work must directly advance the Core Extension Protocol (manifest validation, lifecycle hooks, routing orchestrator, event bus, configuration vault, etc.). Do not revisit unrelated core features unless the user explicitly says so.
+- **No surprise rewrites.** If a change requires touching existing core code, keep edits minimal and strictly in service of extension readiness (e.g., adding hooks, exposing context, wiring registries). Avoid redesigning or re-styling parts of the app just because you spot issues.
+- **Confirm scope alignment.** When a request seems outside extension enablement, pause and ask for confirmation before proceeding. Default assumption: the core app is considered “ready”; our job is to make it extension-ready.
+- **Prefer incremental protocol milestones.** Organize work by the phase checklist (0–6). Document what phase you’re on, what remains, and resist jumping to other enhancements until the current phase is complete.
+- **Surface blockers immediately.** If extension work depends on missing context or conflicting requirements, call it out and request direction instead of filling the gap by broad redevelopment.
+
+## Execution Discipline
+
+To guarantee we never drift away from the Core Extension Protocol:
+
+1. **Phase tracker required.** Mirror the Phase 0–6 checklist from `docs/core-extension-protocol-spec.md` in the active todo list. Explicitly mark which phase is in progress and do not start another until the current phase’s acceptance criteria (schema, code, tests, docs, verification) are complete.
+2. **Spec-first planning.** Before writing code, cite the exact section(s) from the protocol spec that authorize the work (e.g., §3.2 schema, §5 lifecycle). Summaries and PR notes must point back to those sections.
+3. **Scope gate on edits.** Any change to existing core files must include a short justification referencing the extension phase/requirement it serves. If a requested change seems outside that scope, pause and confirm with the user instead of proceeding.
+4. **Verification artifacts.** Each finished phase must produce a brief verification document/checklist (like `docs/phase4-verification.md`) plus any supporting tests or CLI commands proving the phase is done.
+5. **Stoplight reporting.** After each working session, report which phase is green (done), yellow (in progress), or red (blocked) so stakeholders can see progress against the extension roadmap at a glance.

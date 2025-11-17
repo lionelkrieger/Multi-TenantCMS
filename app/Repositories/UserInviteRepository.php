@@ -77,6 +77,37 @@ final class UserInviteRepository extends Repository
         return (int) ($this->fetchColumn($sql, $params) ?? 0);
     }
 
+    public function countPendingForOrganization(string $organizationId): int
+    {
+        return (int) ($this->fetchColumn(
+            'SELECT COUNT(*) FROM user_invites WHERE organization_id = :organization_id AND status = :status',
+            [
+                'organization_id' => $organizationId,
+                'status' => 'pending',
+            ]
+        ) ?? 0);
+    }
+
+    /**
+     * @return array<int, UserInvite>
+     */
+    public function listPendingByOrganization(string $organizationId, int $limit = 5): array
+    {
+        $limit = max(1, min(25, $limit));
+        $records = $this->fetchAll(
+            sprintf(
+                'SELECT * FROM user_invites WHERE organization_id = :organization_id AND status = :status ORDER BY created_at DESC LIMIT %d',
+                $limit
+            ),
+            [
+                'organization_id' => $organizationId,
+                'status' => 'pending',
+            ]
+        );
+
+        return array_map(static fn (array $record): UserInvite => UserInvite::fromArray($record), $records);
+    }
+
     public function updateStatus(string $inviteId, string $status): void
     {
         $this->update(

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Repositories\UserInviteRepository;
+use App\Repositories\UserRepository;
 use App\Services\OrganizationService;
 use App\Services\PropertyService;
 
@@ -11,7 +13,9 @@ final class OrganizationController extends Controller
 {
     public function __construct(
         private readonly OrganizationService $organizations,
-        private readonly PropertyService $properties
+        private readonly PropertyService $properties,
+        private readonly UserRepository $users,
+        private readonly UserInviteRepository $invites
     ) {
     }
 
@@ -29,6 +33,13 @@ final class OrganizationController extends Controller
 
         $propertyCount = $this->properties->count($organizationId);
         $recentProperties = $this->properties->recent($organizationId);
+        $activeUsers = $this->users->countAllFiltered([
+            'organization_id' => $organizationId,
+            'status' => 'active',
+        ]);
+        $pendingInvites = $this->invites->countPendingForOrganization($organizationId);
+        $recentInvites = $this->invites->listPendingByOrganization($organizationId, 5);
+        $recentTeamMembers = $this->users->listByOrganization($organizationId, 5, 0);
 
         $warnings = [];
         if ($propertyCount === 0) {
@@ -45,8 +56,12 @@ final class OrganizationController extends Controller
             'organization' => $organization,
             'stats' => [
                 'property_count' => $propertyCount,
+                'active_user_count' => $activeUsers,
+                'pending_invite_count' => $pendingInvites,
             ],
             'recentProperties' => $recentProperties,
+            'recentInvites' => $recentInvites,
+            'recentTeamMembers' => $recentTeamMembers,
             'warnings' => $warnings,
         ]);
     }

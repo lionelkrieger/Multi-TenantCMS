@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Organization;
 use App\Repositories\OrganizationRepository;
+use App\Repositories\UserRepository;
 
 function request_host(): string
 {
@@ -17,7 +18,8 @@ function resolve_organization_from_request(): ?Organization
 
     $host = request_host();
     $queryOrganizationId = request_query_organization_id();
-    $cacheKey = $host . '|' . ($queryOrganizationId ?? 'none');
+    $userKey = \Auth::id() ?? 'guest';
+    $cacheKey = $host . '|' . ($queryOrganizationId ?? 'none') . '|' . $userKey;
 
     if (array_key_exists($cacheKey, $resolved)) {
         return $resolved[$cacheKey];
@@ -50,7 +52,19 @@ function resolve_organization_from_request(): ?Organization
             'source' => 'query_param',
             'organization_id' => $queryOrganizationId,
         ]);
-    } else {
+    }
+
+    $sessionOrganization = resolve_authenticated_user_organization($repository);
+    if ($sessionOrganization !== null) {
+        logger('Resolved organization via authenticated user fallback.', $context + [
+            'source' => 'session_user',
+            'organization_id' => $sessionOrganization->id,
+        ]);
+        $resolved[$cacheKey] = $sessionOrganization;
+        return $sessionOrganization;
+    }
+
+    if ($queryOrganizationId === null) {
         logger('Domain resolution did not match any tenant and no query parameter fallback was provided.', $context);
     }
 
@@ -93,4 +107,34 @@ function request_query_organization_id(): ?string
     }
 
     return null;
+}
+
+function resolve_authenticated_user_organization(?OrganizationRepository $repository = null): ?Organization
+{
+    if (!\Auth::check()) {
+        return null;
+    }
+
+    static $cache = [];
+    $userId = \Auth::id();
+    if ($userId === null) {
+        return null;
+    }
+
+    if (array_key_exists($userId, $cache)) {
+        return $cache[$userId];
+    }
+
+    $userRepository = new UserRepository(Database::connection());
+    $user = $userRepository->findById($userId);
+    if ($user === null || $user->organizationId === null) {
+        $cache[$userId] = null;
+        return null;
+    }
+
+    $repository ??= new OrganizationRepository(Database::connection());
+    $organization = $repository->findById($user->organizationId);
+    $cache[$userId] = $organization;
+
+    return $organization;
 }

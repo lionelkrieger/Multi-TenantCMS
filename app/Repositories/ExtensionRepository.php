@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Models\Extension;
-use JsonException;
+use App\Services\ExtensionSettingsService;
 
 final class ExtensionRepository extends Repository
 {
@@ -46,59 +46,23 @@ final class ExtensionRepository extends Repository
      */
     public function enabledCounts(): array
     {
-        $rows = $this->fetchAll('SELECT extension_id, SUM(enabled) AS total_enabled FROM extension_settings GROUP BY extension_id');
+        $rows = $this->fetchAll(
+            'SELECT extension_id, JSON_UNQUOTE(JSON_EXTRACT(`value`, "$.value")) AS raw_value
+             FROM extension_settings
+             WHERE `key` = :enabled_key',
+            ['enabled_key' => ExtensionSettingsService::ENABLED_KEY]
+        );
+
         $counts = [];
         foreach ($rows as $row) {
-            $counts[(string) $row['extension_id']] = (int) ($row['total_enabled'] ?? 0);
+            $extensionId = (string) $row['extension_id'];
+            $raw = $row['raw_value'];
+            $isTrue = $raw === 'true' || $raw === '1' || $raw === '"1"';
+            if ($isTrue) {
+                $counts[$extensionId] = ($counts[$extensionId] ?? 0) + 1;
+            }
         }
 
         return $counts;
-    }
-
-    /**
-     * @return array<int, array{extension: Extension, enabled: bool, settings: array<string, mixed>}> 
-     */
-    public function listWithOrganizationContext(string $organizationId): array
-    {
-        $records = $this->fetchAll(
-            'SELECT e.*, es.enabled AS org_enabled, es.settings AS org_settings
-             FROM extensions e
-             LEFT JOIN extension_settings es ON es.extension_id = e.id AND es.organization_id = :organization_id
-             ORDER BY e.display_name ASC',
-            ['organization_id' => $organizationId]
-        );
-
-        $results = [];
-        foreach ($records as $record) {
-            $extension = Extension::fromArray($record);
-            $settings = $this->decodeSettings($record['org_settings'] ?? null);
-            $results[] = [
-                'extension' => $extension,
-                'enabled' => (bool) ($record['org_enabled'] ?? false),
-                'settings' => $settings,
-            ];
-        }
-
-        return $results;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function decodeSettings(?string $payload): array
-    {
-        if ($payload === null || $payload === '') {
-            return [];
-        }
-
-        try {
-            $decoded = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
-            return is_array($decoded) ? $decoded : [];
-        } catch (JsonException $exception) {
-            app_logger()->warning('Failed to decode extension settings payload', [
-                'error' => $exception->getMessage(),
-            ]);
-            return [];
-        }
     }
 }

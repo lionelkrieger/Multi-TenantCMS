@@ -8,13 +8,12 @@ use App\Models\Contracts\Arrayable;
 
 final class ExtensionSettings implements Arrayable
 {
-    /** @param array<string, mixed> $settings */
     public function __construct(
         public readonly string $id,
         public readonly string $extensionId,
         public readonly string $organizationId,
-        public readonly array $settings,
-        public readonly bool $enabled,
+        public readonly string $key,
+        public readonly mixed $value,
         public readonly string $createdAt,
         public readonly string $updatedAt
     ) {
@@ -25,18 +24,18 @@ final class ExtensionSettings implements Arrayable
      */
     public static function fromArray(array $record): self
     {
-        $settings = $record['settings'] ?? [];
-        if (is_string($settings)) {
-            $decoded = json_decode($settings, true);
-            $settings = is_array($decoded) ? $decoded : [];
+        $value = $record['value'] ?? null;
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            $value = $decoded ?? $value;
         }
 
         return new self(
             (string) ($record['id'] ?? ''),
             (string) ($record['extension_id'] ?? ''),
             (string) ($record['organization_id'] ?? ''),
-            $settings,
-            (bool) ($record['enabled'] ?? false),
+            (string) ($record['key'] ?? ''),
+            $value,
             (string) ($record['created_at'] ?? date('Y-m-d H:i:s')),
             (string) ($record['updated_at'] ?? date('Y-m-d H:i:s'))
         );
@@ -48,8 +47,8 @@ final class ExtensionSettings implements Arrayable
             'id' => $this->id,
             'extension_id' => $this->extensionId,
             'organization_id' => $this->organizationId,
-            'settings' => $this->settings,
-            'enabled' => $this->enabled,
+            'key' => $this->key,
+            'value' => $this->value,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,
         ];

@@ -12,6 +12,8 @@ use RuntimeException;
 
 final class ExtensionSettingsService implements ExtensionSettingsStoreInterface
 {
+    public const ENABLED_KEY = 'core.enabled';
+
     private PDO $connection;
 
     /**
@@ -26,98 +28,78 @@ final class ExtensionSettingsService implements ExtensionSettingsStoreInterface
 
     public function get(string $extensionSlug, string $organizationId, string $key, mixed $default = null): mixed
     {
-        $row = $this->fetchSettingsRow($extensionSlug, $organizationId);
+        $extensionId = $this->getExtensionId($extensionSlug);
+        $storageKey = $this->normalizeStorageKey($extensionSlug, $key);
+        $row = $this->fetchSetting($extensionId, $organizationId, $storageKey);
+        if ($row === null && $storageKey !== $key) {
+            // Legacy fallback for pre-namespaced keys
+            $row = $this->fetchSetting($extensionId, $organizationId, $key);
+        }
         if ($row === null) {
             return $default;
         }
 
-        $settings = $this->normalizeSettings($row['settings'] ?? []);
-        if (!array_key_exists($key, $settings)) {
-            return $default;
-        }
-
-        $payload = $settings[$key];
-        $value = $payload['value'] ?? null;
-        $encrypted = (bool) ($payload['encrypted'] ?? false);
-        $serialized = (bool) ($payload['serialized'] ?? false);
-
-        if ($encrypted && is_string($value)) {
-            $value = Encryptor::decrypt($value);
-        }
-
-        if ($serialized && is_string($value)) {
-            $value = $this->decodeValue($value);
-        }
-
+        $value = $this->unpackPayload($row['value']);
         return $value ?? $default;
     }
 
     public function set(string $extensionSlug, string $organizationId, string $key, mixed $value, bool $encrypt = false): void
     {
-        $row = $this->fetchSettingsRow($extensionSlug, $organizationId, true);
-        $settings = $this->normalizeSettings($row['settings'] ?? []);
+    $extensionId = $this->getExtensionId($extensionSlug);
+    $storageKey = $this->normalizeStorageKey($extensionSlug, $key);
+    $payload = $this->preparePayload($value, $encrypt);
 
-        $isSerialized = !is_scalar($value) && $value !== null;
-        $storedValue = $isSerialized ? $this->encodeValue($value) : $value;
-
-        $isEncrypted = false;
-        if ($encrypt && $storedValue !== null) {
-            $storedValue = Encryptor::encrypt((string) $storedValue);
-            $isEncrypted = true;
+        try {
+            $encoded = json_encode($payload, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('Unable to encode extension setting payload.', 0, $exception);
         }
 
-        $settings[$key] = [
-            'value' => $storedValue,
-            'encrypted' => $isEncrypted,
-            'serialized' => $isSerialized,
-            'updated_at' => date(DATE_ATOM),
-        ];
+        $statement = $this->connection->prepare(
+            'INSERT INTO extension_settings (id, extension_id, organization_id, `key`, `value`, created_at, updated_at)
+             VALUES (:id, :extension_id, :organization_id, :key, :value, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = NOW()'
+        );
 
-        $this->persistSettings((string) $row['id'], $settings);
+        $statement->execute([
+            'id' => generate_uuid_v4(),
+            'extension_id' => $extensionId,
+            'organization_id' => $organizationId,
+            'key' => $storageKey,
+            'value' => $encoded,
+        ]);
     }
 
     public function all(string $extensionSlug, string $organizationId): array
     {
-        $row = $this->fetchSettingsRow($extensionSlug, $organizationId);
-        if ($row === null) {
-            return [];
+        $extensionId = $this->getExtensionId($extensionSlug);
+        $statement = $this->connection->prepare('SELECT `key`, `value` FROM extension_settings WHERE extension_id = :extension_id AND organization_id = :organization_id');
+        $statement->execute([
+            'extension_id' => $extensionId,
+            'organization_id' => $organizationId,
+        ]);
+
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $settings = [];
+        $prefix = $this->keyPrefix($extensionSlug);
+        foreach ($rows as $row) {
+            $storedKey = (string) $row['key'];
+            $key = $this->displayKey($prefix, $storedKey);
+            $value = $this->unpackPayload($row['value']);
+            $settings[$key] = $value;
         }
 
-        $settings = $this->normalizeSettings($row['settings']);
-        $decoded = [];
-        foreach ($settings as $key => $payload) {
-            $value = $payload['value'] ?? null;
-            $encrypted = (bool) ($payload['encrypted'] ?? false);
-            $serialized = (bool) ($payload['serialized'] ?? false);
-
-            if ($encrypted && is_string($value)) {
-                $value = Encryptor::decrypt($value);
-            }
-
-            if ($serialized && is_string($value)) {
-                $value = $this->decodeValue($value);
-            }
-
-            $decoded[$key] = $value;
-        }
-
-        return $decoded;
+        return $settings;
     }
 
     public function setEnabled(string $extensionSlug, string $organizationId, bool $enabled): void
     {
-        $row = $this->fetchSettingsRow($extensionSlug, $organizationId, true);
-        $statement = $this->connection->prepare('UPDATE extension_settings SET enabled = :enabled, updated_at = NOW() WHERE id = :id');
-        $statement->execute([
-            'enabled' => $enabled ? 1 : 0,
-            'id' => $row['id'],
-        ]);
+        $this->set($extensionSlug, $organizationId, self::ENABLED_KEY, $enabled);
     }
 
     public function isEnabled(string $extensionSlug, string $organizationId): bool
     {
-        $row = $this->fetchSettingsRow($extensionSlug, $organizationId);
-        return $row !== null && (bool) ($row['enabled'] ?? false);
+        return (bool) $this->get($extensionSlug, $organizationId, self::ENABLED_KEY, false);
     }
 
     /**
@@ -125,66 +107,14 @@ final class ExtensionSettingsService implements ExtensionSettingsStoreInterface
      */
     public function status(string $extensionSlug, string $organizationId): array
     {
-        $row = $this->fetchSettingsRow($extensionSlug, $organizationId);
-        return [
-            'enabled' => $row !== null && (bool) ($row['enabled'] ?? false),
-            'settings' => $this->all($extensionSlug, $organizationId),
-        ];
-    }
-
-    /**
-     * @return array{id: string, extension_id: string, organization_id: string, settings: mixed, enabled?: bool}|null
-     */
-    private function fetchSettingsRow(string $extensionSlug, string $organizationId, bool $createIfMissing = false): ?array
-    {
-        $extensionId = $this->getExtensionId($extensionSlug);
-
-        $statement = $this->connection->prepare('SELECT * FROM extension_settings WHERE extension_id = :extension_id AND organization_id = :organization_id LIMIT 1');
-        $statement->execute([
-            'extension_id' => $extensionId,
-            'organization_id' => $organizationId,
-        ]);
-
-        $row = $statement->fetch(PDO::FETCH_ASSOC);
-        if ($row !== false) {
-            return $row;
-        }
-
-        if (!$createIfMissing) {
-            return null;
-        }
-
-        $id = generate_uuid_v4();
-        $insert = $this->connection->prepare('INSERT INTO extension_settings (id, extension_id, organization_id, settings, enabled, created_at, updated_at) VALUES (:id, :extension_id, :organization_id, :settings, 0, NOW(), NOW())');
-        $insert->execute([
-            'id' => $id,
-            'extension_id' => $extensionId,
-            'organization_id' => $organizationId,
-            'settings' => '{}',
-        ]);
+        $all = $this->all($extensionSlug, $organizationId);
+        $enabled = (bool) ($all[self::ENABLED_KEY] ?? false);
+        unset($all[self::ENABLED_KEY]);
 
         return [
-            'id' => $id,
-            'extension_id' => $extensionId,
-            'organization_id' => $organizationId,
-            'settings' => '{}',
-            'enabled' => 0,
+            'enabled' => $enabled,
+            'settings' => $all,
         ];
-    }
-
-    private function persistSettings(string $id, array $settings): void
-    {
-        try {
-            $encoded = json_encode($settings, JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
-            throw new RuntimeException('Unable to encode extension settings payload.', 0, $exception);
-        }
-
-        $statement = $this->connection->prepare('UPDATE extension_settings SET settings = :settings, updated_at = NOW() WHERE id = :id');
-        $statement->execute([
-            'settings' => $encoded,
-            'id' => $id,
-        ]);
     }
 
     private function getExtensionId(string $slug): string
@@ -206,45 +136,105 @@ final class ExtensionSettingsService implements ExtensionSettingsStoreInterface
         return $extensionId;
     }
 
-    private function normalizeSettings(mixed $raw): array
+    private function fetchSetting(string $extensionId, string $organizationId, string $key): ?array
     {
-        if (is_array($raw)) {
+        $statement = $this->connection->prepare('SELECT `value` FROM extension_settings WHERE extension_id = :extension_id AND organization_id = :organization_id AND `key` = :key LIMIT 1');
+        $statement->execute([
+            'extension_id' => $extensionId,
+            'organization_id' => $organizationId,
+            'key' => $key,
+        ]);
+
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
+    }
+
+    private function preparePayload(mixed $value, bool $encrypt): array
+    {
+        $isSerialized = !is_scalar($value) && $value !== null;
+        $storedValue = $isSerialized ? $this->encodeValue($value) : $value;
+
+        $isEncrypted = false;
+        if ($encrypt && $storedValue !== null) {
+            $storedValue = Encryptor::encrypt((string) $storedValue);
+            $isEncrypted = true;
+        }
+
+        return [
+            'value' => $storedValue,
+            'encrypted' => $isEncrypted,
+            'serialized' => $isSerialized,
+            'updated_at' => date(DATE_ATOM),
+        ];
+    }
+
+    private function unpackPayload(mixed $raw): mixed
+    {
+        if (is_string($raw) && $raw !== '') {
+            try {
+                $raw = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+            } catch (JsonException $exception) {
+                logger('Failed to decode extension setting payload', ['error' => $exception->getMessage()]);
+                return null;
+            }
+        }
+
+        if (!is_array($raw)) {
             return $raw;
         }
 
-        if (!is_string($raw) || $raw === '') {
-            return [];
+        $value = $raw['value'] ?? null;
+        $encrypted = (bool) ($raw['encrypted'] ?? false);
+        $serialized = (bool) ($raw['serialized'] ?? false);
+
+        if ($encrypted && is_string($value)) {
+            $value = Encryptor::decrypt($value);
         }
 
-        try {
-            $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
-            logger('Failed to decode extension settings JSON', ['error' => $exception->getMessage()]);
-            return [];
+        if ($serialized && is_string($value)) {
+            $value = $this->decodeValue($value);
         }
 
-        if (!is_array($decoded)) {
-            return [];
+        return $value;
+    }
+
+    private function normalizeStorageKey(string $extensionSlug, string $key): string
+    {
+        if ($this->isGlobalKey($key)) {
+            return $key;
         }
 
-        $normalized = [];
-        foreach ($decoded as $key => $value) {
-            if (is_array($value) && array_key_exists('value', $value)) {
-                $normalized[$key] = $value + [
-                    'encrypted' => (bool) ($value['encrypted'] ?? false),
-                    'serialized' => (bool) ($value['serialized'] ?? false),
-                ];
-                continue;
-            }
-
-            $normalized[$key] = [
-                'value' => $value,
-                'encrypted' => false,
-                'serialized' => !is_scalar($value) && $value !== null,
-            ];
+        $key = ltrim($key);
+        $prefix = $this->keyPrefix($extensionSlug);
+        if (str_starts_with($key, $prefix . '.')) {
+            return $key;
         }
 
-        return $normalized;
+        return sprintf('%s.%s', $prefix, $key);
+    }
+
+    private function displayKey(string $prefix, string $storedKey): string
+    {
+        if ($this->isGlobalKey($storedKey)) {
+            return $storedKey;
+        }
+
+        $prefixed = $prefix . '.';
+        if (str_starts_with($storedKey, $prefixed)) {
+            return substr($storedKey, strlen($prefixed));
+        }
+
+        return $storedKey;
+    }
+
+    private function keyPrefix(string $extensionSlug): string
+    {
+        return str_replace(['/', ' '], '.', strtolower($extensionSlug));
+    }
+
+    private function isGlobalKey(string $key): bool
+    {
+        return str_starts_with($key, 'core.');
     }
 
     private function encodeValue(mixed $value): ?string

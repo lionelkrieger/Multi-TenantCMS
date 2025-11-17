@@ -1,0 +1,7 @@
+{
+  "slug": "platform/email",
+  "name": "Email & Documents",
+  "version": "1.0.0",
+  "description": "Handles email queuing, delivery, and PDF generation.",
+  "entry_point": "bootstrap.php"
+}

@@ -97,13 +97,13 @@ try {
                 id VARCHAR(36) PRIMARY KEY NOT NULL,
                 extension_id VARCHAR(36) NOT NULL,
                 organization_id VARCHAR(36) NOT NULL,
-                settings JSON NOT NULL,
-                enabled BOOLEAN DEFAULT FALSE,
+                `key` VARCHAR(150) NOT NULL,
+                `value` JSON NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (extension_id) REFERENCES extensions(id) ON DELETE CASCADE,
                 FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
-                UNIQUE KEY unique_org_extension (organization_id, extension_id)
+                UNIQUE KEY unique_org_extension_key (extension_id, organization_id, `key`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         SQL);
     }
